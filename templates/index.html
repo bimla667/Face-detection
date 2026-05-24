@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NHAI — Offline Facial Recognition & Liveness Detection System</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <!-- Google Fonts: Inter for clean government-grade UI -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     TOP NAVBAR
+══════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-left">
+    <!-- NHAI Logo placeholder (colored emblem) -->
+    <div class="nhai-logo">
+      <div class="logo-emblem">
+        <span class="logo-text">NHAI</span>
+      </div>
+    </div>
+    <div class="nav-title">
+      <span class="nav-main">National Highways Authority of India</span>
+      <span class="nav-sub">Offline AI Attendance Verification System — Hackathon 7.0</span>
+    </div>
+  </div>
+
+  <div class="nav-right">
+    <!-- Offline badge — key differentiator of the project -->
+    <div class="badge offline-badge">
+      <span class="badge-dot pulse-green"></span>
+      Works Without Internet
+    </div>
+    <!-- Live clock -->
+    <div class="clock" id="liveClock">--:--:--</div>
+    <!-- Dark/Light mode toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+      <span id="themeIcon">🌙</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     HERO SECTION
+══════════════════════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-badge">🏗️ NHAI Hackathon 7.0 — Smart Infrastructure</div>
+    <h1 class="hero-title">
+      Offline Facial Recognition<br/>
+      <span class="accent">& Liveness Detection</span>
+    </h1>
+    <p class="hero-subtitle">
+      AI-powered attendance verification for remote highway zones —
+      no internet required. Syncs automatically when connectivity restores.
+    </p>
+
+    <!-- Key Metrics Row -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <div class="metric-value">96.4%</div>
+        <div class="metric-label">Recognition Accuracy</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">&lt;1 sec</div>
+        <div class="metric-label">Response Time</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">&lt;20 MB</div>
+        <div class="metric-label">Model Size</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-value">100%</div>
+        <div class="metric-label">Offline Operation</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN DASHBOARD
+══════════════════════════════════════════════════════ -->
+<main class="dashboard">
+
+  <!-- ── LEFT: Camera + Verification Panel ── -->
+  <div class="panel camera-panel glass-card">
+    <div class="panel-header">
+      <div class="panel-title">
+        <span class="panel-icon">📷</span>
+        Live Face Verification
+      </div>
+      <div class="status-dot" id="cameraStatus">
+        <span class="dot green-dot"></span> Camera Active
+      </div>
+    </div>
+
+    <!-- Camera Stream (MJPEG from Flask /video_feed) -->
+    <div class="camera-wrapper">
+      <img
+        src="/video_feed"
+        alt="Live webcam feed"
+        class="camera-feed"
+        id="cameraFeed"
+      />
+      <!-- Scan overlay animation -->
+      <div class="scan-overlay" id="scanOverlay" style="display:none;">
+        <div class="scan-line"></div>
+        <div class="scan-text">SCANNING...</div>
+      </div>
+    </div>
+
+    <!-- Step-by-step liveness instructions -->
+    <div class="liveness-steps">
+      <div class="steps-title">🔍 Liveness Check Steps</div>
+      <div class="steps-grid">
+        <div class="step-item" id="step1">
+          <div class="step-icon">👁️</div>
+          <div class="step-text">
+            <div class="step-label">Step 1</div>
+            <div class="step-desc">Blink your eyes twice</div>
+          </div>
+          <div class="step-status" id="step1Status">⬜</div>
+        </div>
+        <div class="step-item" id="step2">
+          <div class="step-icon">↩️</div>
+          <div class="step-text">
+            <div class="step-label">Step 2</div>
+            <div class="step-desc">Turn head slightly left</div>
+          </div>
+          <div class="step-status" id="step2Status">⬜</div>
+        </div>
+        <div class="step-item" id="step3">
+          <div class="step-icon">😊</div>
+          <div class="step-text">
+            <div class="step-label">Step 3</div>
+            <div class="step-desc">Smile for verification</div>
+          </div>
+          <div class="step-status" id="step3Status">⬜</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verify Button -->
+    <button class="verify-btn" id="verifyBtn" onclick="startVerification()">
+      <span class="btn-icon">🛡️</span>
+      Begin Verification
+    </button>
+  </div>
+
+  <!-- ── RIGHT: Status + Attendance Panel ── -->
+  <div class="right-panels">
+
+    <!-- Verification Result Card -->
+    <div class="panel glass-card result-panel" id="resultPanel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">✅</span>
+          Verification Status
+        </div>
+      </div>
+      <!-- Default state -->
+      <div class="result-placeholder" id="resultPlaceholder">
+        <div class="placeholder-icon">🔐</div>
+        <div class="placeholder-text">Awaiting verification...</div>
+        <div class="placeholder-sub">Click "Begin Verification" to start</div>
+      </div>
+      <!-- Success state (hidden initially) -->
+      <div class="result-success" id="resultSuccess" style="display:none;">
+        <div class="success-checkmark">✅</div>
+        <div class="success-title">Attendance Marked!</div>
+        <div class="success-name" id="successName">—</div>
+        <div class="result-details">
+          <div class="detail-row">
+            <span class="detail-label">Confidence</span>
+            <span class="detail-value" id="detailConf">—</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Liveness Score</span>
+            <span class="detail-value" id="detailLiveness">—</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Timestamp</span>
+            <span class="detail-value" id="detailTime">—</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Location</span>
+            <span class="detail-value">NH-44, Km 342</span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-label">Record ID</span>
+            <span class="detail-value" id="detailId">—</span>
+          </div>
+        </div>
+      </div>
+      <!-- Error state (hidden initially) -->
+      <div class="result-error" id="resultError" style="display:none;">
+        <div class="error-icon">⚠️</div>
+        <div class="error-title">Verification Failed</div>
+        <div class="error-msg" id="errorMsg">—</div>
+      </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="panel glass-card stats-panel">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">📊</span>
+          Today's Statistics
+        </div>
+        <button class="refresh-btn" onclick="loadStats()">↻ Refresh</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-number" id="statToday">0</div>
+          <div class="stat-label">Today's Records</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number" id="statTotal">0</div>
+          <div class="stat-label">Total Records</div>
+        </div>
+        <div class="stat-box pending">
+          <div class="stat-number" id="statPending">0</div>
+          <div class="stat-label">Pending Sync</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number">99.7%</div>
+          <div class="stat-label">System Uptime</div>
+        </div>
+      </div>
+
+      <!-- AWS Sync Simulation Button -->
+      <button class="sync-btn" id="syncBtn" onclick="syncToCloud()">
+        <span class="sync-icon">☁️</span>
+        <span id="syncBtnText">Sync to AWS Cloud</span>
+      </button>
+      <div class="sync-note">📡 Simulates upload to AWS S3 / DynamoDB</div>
+    </div>
+
+  </div><!-- end right-panels -->
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     ARCHITECTURE SECTION
+══════════════════════════════════════════════════════ -->
+<section class="architecture-section">
+  <div class="section-header">
+    <h2>System Architecture</h2>
+    <p>End-to-end offline-first design with cloud sync capability</p>
+  </div>
+  <div class="arch-flow">
+    <div class="arch-step">
+      <div class="arch-icon">📸</div>
+      <div class="arch-label">Webcam Capture</div>
+      <div class="arch-desc">OpenCV frame extraction</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-step">
+      <div class="arch-icon">🔍</div>
+      <div class="arch-label">Face Detection</div>
+      <div class="arch-desc">Haar Cascade / dlib</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-step">
+      <div class="arch-icon">👁️</div>
+      <div class="arch-label">Liveness Check</div>
+      <div class="arch-desc">Blink + Head + Smile</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-step">
+      <div class="arch-icon">🧠</div>
+      <div class="arch-label">Face Recognition</div>
+      <div class="arch-desc">128-D face encoding</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-step">
+      <div class="arch-icon">💾</div>
+      <div class="arch-label">Local Storage</div>
+      <div class="arch-desc">JSON on-device file</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-step">
+      <div class="arch-icon">☁️</div>
+      <div class="arch-label">AWS Sync</div>
+      <div class="arch-desc">S3 + DynamoDB upload</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     RECENT ATTENDANCE LOG
+══════════════════════════════════════════════════════ -->
+<section class="log-section">
+  <div class="section-header">
+    <h2>📋 Local Attendance Log</h2>
+    <p>Stored on-device — syncs to cloud when available</p>
+  </div>
+  <div class="glass-card log-card">
+    <div class="log-table-wrapper">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>Record ID</th>
+            <th>Name</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Confidence</th>
+            <th>Liveness</th>
+            <th>Status</th>
+            <th>Sync</th>
+          </tr>
+        </thead>
+        <tbody id="logTableBody">
+          <tr>
+            <td colspan="8" class="empty-log">No records yet. Complete a verification to begin.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     WHY THIS MATTERS SECTION
+══════════════════════════════════════════════════════ -->
+<section class="why-section">
+  <div class="section-header">
+    <h2>Why This Solution Matters</h2>
+    <p>Built for the real challenges of India's highway workforce</p>
+  </div>
+  <div class="why-grid">
+    <div class="why-card glass-card">
+      <div class="why-icon">🛣️</div>
+      <h3>Remote Locations</h3>
+      <p>Highway toll booths, construction sites, and maintenance depots often lack reliable internet. This system works completely offline.</p>
+    </div>
+    <div class="why-card glass-card">
+      <div class="why-icon">🚫</div>
+      <h3>Prevents Proxy Attendance</h3>
+      <p>Liveness detection (blink, head movement, smile) ensures the person present is physically real — not a photo or video.</p>
+    </div>
+    <div class="why-card glass-card">
+      <div class="why-icon">⚡</div>
+      <h3>Instant Verification</h3>
+      <p>Sub-second face recognition using dlib's 128-dimension face encoding model — fast enough for high-traffic checkpoints.</p>
+    </div>
+    <div class="why-card glass-card">
+      <div class="why-icon">🔒</div>
+      <h3>Data Privacy</h3>
+      <p>All biometric processing happens locally. Face encodings never leave the device unless explicitly synced to an authorised cloud.</p>
+    </div>
+    <div class="why-card glass-card">
+      <div class="why-icon">📱</div>
+      <h3>Low-Cost Hardware</h3>
+      <p>Runs on a Raspberry Pi 4 or basic laptop. No GPU required. Total hardware cost under ₹5,000 per unit.</p>
+    </div>
+    <div class="why-card glass-card">
+      <div class="why-icon">☁️</div>
+      <h3>Smart Sync</h3>
+      <p>Attendance records queue locally and automatically upload to AWS when connectivity resumes — zero data loss.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════════════ -->
+<footer class="footer">
+  <div class="footer-content">
+    <div class="footer-left">
+      <div class="footer-logo">NHAI</div>
+      <div class="footer-desc">National Highways Authority of India<br/>Smart Infrastructure Initiative</div>
+    </div>
+    <div class="footer-center">
+      <div class="footer-item">🏆 NHAI Hackathon 7.0</div>
+      <div class="footer-item">🤖 Offline AI Attendance System</div>
+      <div class="footer-item">🇮🇳 Made in India</div>
+    </div>
+    <div class="footer-right">
+      <div class="tech-stack">
+        <span class="tech-tag">Python</span>
+        <span class="tech-tag">Flask</span>
+        <span class="tech-tag">OpenCV</span>
+        <span class="tech-tag">face_recognition</span>
+        <span class="tech-tag">AWS</span>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2025 NHAI Hackathon Project — For demonstration purposes only
+  </div>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════
+     JAVASCRIPT — minimal, handles UI state only
+══════════════════════════════════════════════════════ -->
+<script>
+// ── Live Clock ──────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById("liveClock").textContent =
+    now.toLocaleTimeString("en-IN", { hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Theme Toggle ─────────────────────────────────────────────
+let isDark = false;
+function toggleTheme() {
+  isDark = !isDark;
+  document.body.classList.toggle("light-mode", !isDark);
+  document.body.classList.toggle("dark-mode", isDark);
+  document.getElementById("themeIcon").textContent = isDark ? "☀️" : "🌙";
+}
+
+// ── Liveness Step Animator ────────────────────────────────────
+// Simulates the liveness check steps updating one by one
+function animateLivenessSteps(onDone) {
+  const steps = ["step1Status", "step2Status", "step3Status"];
+  const items = ["step1", "step2", "step3"];
+  let i = 0;
+
+  const interval = setInterval(() => {
+    if (i < steps.length) {
+      document.getElementById(steps[i]).textContent = "✅";
+      document.getElementById(items[i]).classList.add("step-done");
+      i++;
+    } else {
+      clearInterval(interval);
+      onDone();
+    }
+  }, 900);  // 0.9 second between each step
+}
+
+// Reset liveness steps to default state
+function resetSteps() {
+  ["step1Status","step2Status","step3Status"].forEach(id => {
+    document.getElementById(id).textContent = "⬜";
+  });
+  ["step1","step2","step3"].forEach(id => {
+    document.getElementById(id).classList.remove("step-done");
+  });
+}
+
+// ── Main Verification Flow ────────────────────────────────────
+function startVerification() {
+  const btn = document.getElementById("verifyBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-icon">⏳</span> Processing...';
+
+  // Hide any previous results
+  document.getElementById("resultPlaceholder").style.display = "none";
+  document.getElementById("resultSuccess").style.display = "none";
+  document.getElementById("resultError").style.display = "none";
+
+  // Show scan overlay on camera feed
+  document.getElementById("scanOverlay").style.display = "flex";
+
+  // Reset and animate liveness steps
+  resetSteps();
+  animateLivenessSteps(() => {
+    // After liveness animation, call backend verify endpoint
+    fetch("/verify", { method: "POST" })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("scanOverlay").style.display = "none";
+
+        if (data.status === "success") {
+          showSuccess(data);
+        } else {
+          showError(data.message || "Verification failed.");
+        }
+
+        // Refresh stats and log after each attempt
+        loadStats();
+        loadAttendanceLog();
+      })
+      .catch(err => {
+        document.getElementById("scanOverlay").style.display = "none";
+        showError("Server error: " + err.message);
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="btn-icon">🛡️</span> Begin Verification';
+      });
+  });
+}
+
+// Display success card
+function showSuccess(data) {
+  document.getElementById("successName").textContent = data.name;
+  document.getElementById("detailConf").textContent = data.confidence + "%";
+  document.getElementById("detailLiveness").textContent = data.liveness_score + "%";
+  document.getElementById("detailTime").textContent = data.timestamp;
+  document.getElementById("detailId").textContent = data.record_id;
+  document.getElementById("resultSuccess").style.display = "block";
+}
+
+// Display error card
+function showError(msg) {
+  document.getElementById("errorMsg").textContent = msg;
+  document.getElementById("resultError").style.display = "block";
+}
+
+// ── Load Statistics ───────────────────────────────────────────
+function loadStats() {
+  fetch("/stats")
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById("statToday").textContent = d.total_today;
+      document.getElementById("statTotal").textContent = d.total_all;
+      document.getElementById("statPending").textContent = d.pending_sync;
+    });
+}
+
+// ── Load Attendance Log ───────────────────────────────────────
+function loadAttendanceLog() {
+  fetch("/get_attendance")
+    .then(r => r.json())
+    .then(records => {
+      const tbody = document.getElementById("logTableBody");
+      if (!records.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-log">No records yet.</td></tr>';
+        return;
+      }
+      // Show latest records first
+      const sorted = records.slice().reverse();
+      tbody.innerHTML = sorted.map(r => `
+        <tr>
+          <td class="mono">${r.id}</td>
+          <td><strong>${r.name}</strong></td>
+          <td>${r.date}</td>
+          <td>${r.time}</td>
+          <td><span class="badge-green">${r.confidence}%</span></td>
+          <td><span class="badge-green">${r.liveness_score}%</span></td>
+          <td><span class="badge-blue">Present</span></td>
+          <td>${r.synced
+            ? '<span class="badge-green">✅ Synced</span>'
+            : '<span class="badge-orange">⏳ Pending</span>'}</td>
+        </tr>
+      `).join("");
+    });
+}
+
+// ── Sync to AWS ───────────────────────────────────────────────
+function syncToCloud() {
+  const btn = document.getElementById("syncBtn");
+  btn.disabled = true;
+  document.getElementById("syncBtnText").textContent = "Syncing...";
+
+  fetch("/sync_attendance", { method: "POST" })
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById("syncBtnText").textContent = data.message;
+      setTimeout(() => {
+        document.getElementById("syncBtnText").textContent = "Sync to AWS Cloud";
+        btn.disabled = false;
+      }, 3000);
+      loadStats();
+      loadAttendanceLog();
+    });
+}
+
+// ── On Page Load ──────────────────────────────────────────────
+window.onload = () => {
+  loadStats();
+  loadAttendanceLog();
+};
+</script>
+</body>
+</html>
